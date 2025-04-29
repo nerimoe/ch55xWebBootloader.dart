@@ -221,7 +221,7 @@ Future<dynamic> upload(Uint8List hexContent, UsbDevice device) async {
 
   totalPackets = ((writeDataSize + 55) / 56).toInt();
   lastPacketSize = writeDataSize % 56;
-  lastPacketSize = ((lastPacketSize + 7) / 8 * 8).toInt();
+  lastPacketSize = (((lastPacketSize + 7) / 8).toInt() * 8);
 
   if (lastPacketSize == 0) lastPacketSize = 56;
 
@@ -249,10 +249,11 @@ Future<dynamic> upload(Uint8List hexContent, UsbDevice device) async {
     bootloaderWriteCmd[3] = u16Tmp & 0xFF;
     bootloaderWriteCmd[4] = (u16Tmp >> 8) & 0xFF;
 
-    await device.transferOut(
-        endpointOut,
-        Uint8List.fromList(
-            bootloaderWriteCmd.sublist(0, bootloaderWriteCmd[1] + 3)));
+    var length = bootloaderWriteCmd[1] + 3;
+    var data = Uint8List.fromList(
+        bootloaderWriteCmd.sublist(0, length > 64 ? 64 : length));
+
+    await device.transferOut(endpointOut, data);
     result = await device.transferIn(endpointIn, 64);
     var tmp = i + 1;
     log("flash package $tmp of $totalPackets");
@@ -281,10 +282,11 @@ Future<dynamic> upload(Uint8List hexContent, UsbDevice device) async {
     bootloaderVerifyCmd[3] = u16Tmp & 0xFF;
     bootloaderVerifyCmd[4] = (u16Tmp >> 8) & 0xFF;
 
-    await device.transferOut(
-        endpointOut,
-        Uint8List.fromList(
-            bootloaderWriteCmd.sublist(0, bootloaderVerifyCmd[1] + 3)));
+    var length = bootloaderVerifyCmd[1] + 3;
+    var data = Uint8List.fromList(
+        bootloaderVerifyCmd.sublist(0, length > 64 ? 64 : length));
+
+    await device.transferOut(endpointOut, data);
     result = await device.transferIn(endpointIn, 64);
 
     if (result.data.getUint8(4) != 0 || result.data.getUint8(5) != 0) {
